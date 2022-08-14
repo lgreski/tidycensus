@@ -4,7 +4,13 @@
 \alias{load_variables}
 \title{Load variables from a decennial Census or American Community Survey dataset to search in R}
 \usage{
-load_variables(year, dataset, cache = FALSE)
+load_variables(
+  year,
+  dataset = c("sf1", "sf2", "sf3", "sf4", "pl", "as", "gu", "mp", "vi", "acs1", "acs3",
+    "acs5", "acs1/profile", "acs3/profile", "acs5/profile", "acs1/subject",
+    "acs3/subject", "acs5/subject", "acs1/cprofile", "acs5/cprofile"),
+  cache = FALSE
+)
 }
 \arguments{
 \item{year}{The year for which you are requesting variables. Either the year
@@ -12,9 +18,10 @@ or endyear of the decennial Census or ACS sample. 5-year ACS data is
 available from 2009 through 2018. 1-year ACS data is available from 2005
 through 2019.}
 
-\item{dataset}{One of "sf1", "sf3", "acs1", "acs3", "acs5", "acs1/profile",
-"acs3/profile, "acs5/profile", "acs1/subject", "acs3/subject", or
-"acs5/subject".}
+\item{dataset}{One of "sf1", "sf2", "sf3", "sf4", "pl",
+"as", "gu", "mp", "vi", "acs1", "acs3", "acs5", "acs1/profile",
+"acs3/profile", "acs5/profile", "acs1/subject", "acs3/subject", "acs5/subject",
+"acs1/cprofile", or "acs5/cprofile".}
 
 \item{cache}{Whether you would like to cache the dataset for future access,
 or load the dataset from an existing cache. Defaults to FALSE.}

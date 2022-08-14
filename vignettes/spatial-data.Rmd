@@ -9,17 +9,23 @@ library(tidycensus)
 knitr::opts_chunk$set(message = FALSE, warning = FALSE, fig.width = 8)
 ```
 
-If requested, __tidycensus__ can return simple feature geometry for geographic units along with variables from the decennial US Census or American Community survey.  By setting `geometry = TRUE` in a __tidycensus__ function call, __tidycensus__ will use the __tigris__ package to retrieve the corresponding geographic dataset from the US Census Bureau and pre-merge it with the tabular data obtained from the Census API.  As of tidycensus version 0.9.9.2, `geometry = TRUE` is supported for all geographies currently available in the package.  
+If requested, __tidycensus__ can return simple feature geometry for geographic units along with variables from the decennial US Census or American Community survey.  By setting `geometry = TRUE` in a __tidycensus__ function call, __tidycensus__ will use the __tigris__ package to retrieve the corresponding geographic dataset from the US Census Bureau and pre-merge it with the tabular data obtained from the Census API.   
 
-The following example shows median household income from the 2015-2019 ACS for Census tracts in Orange County, California: 
+The following example shows median household income from the 2016-2020 ACS for Census tracts in Orange County, California: 
 
 ```{r}
 library(tidycensus)
 library(tidyverse)
 options(tigris_use_cache = TRUE)
 
-orange <- get_acs(state = "CA", county = "Orange", geography = "tract", 
-                  variables = "B19013_001", geometry = TRUE)
+orange <- get_acs(
+  state = "CA",
+  county = "Orange",
+  geography = "tract",
+  variables = "B19013_001",
+  geometry = TRUE,
+  year = 2020
+)
 
 head(orange)
 ```
@@ -32,7 +38,6 @@ As the dataset is in a tidy format, it can be quickly visualized with the `geom_
 orange %>%
   ggplot(aes(fill = estimate)) + 
   geom_sf(color = NA) + 
-  coord_sf(crs = 26911) + 
   scale_fill_viridis_c(option = "magma") 
 ```
 
@@ -40,38 +45,45 @@ Please note that the UTM Zone 11N coordinate system (`26911`) is appropriate for
 
 ## Faceted mapping
 
-One of the most powerful features of __ggplot2__ is its support for small multiples, which works very well with the tidy data format returned by __tidycensus__.  Many Census and ACS variables return _counts_, however, which are generally inappropriate for choropleth mapping.  In turn, `get_decennial` and `get_acs` have an optional argument, `summary_var`, that can work as a multi-group denominator when appropriate.  Let's use the following example of the racial geography of Harris County, Texas.  First, we'll request data for non-Hispanic whites, non-Hispanic blacks, non-Hispanic Asians, and Hispanics by Census tract for the 2010 Census, and specify total population as the summary variable.  `year` is not necessary here as the default is 2010.   
+One of the most powerful features of __ggplot2__ is its support for small multiples, which works very well with the tidy data format returned by __tidycensus__.  Many Census and ACS variables return _counts_, however, which are generally inappropriate for choropleth mapping.  In turn, `get_decennial` and `get_acs` have an optional argument, `summary_var`, that can work as a multi-group denominator when appropriate.  Let's use the following example of the racial geography of Harris County, Texas.  First, we'll request data for non-Hispanic whites, non-Hispanic blacks, non-Hispanic Asians, and Hispanics by Census tract for the 2020 Census.
 
 ```{r}
-racevars <- c(White = "P005003", 
-              Black = "P005004", 
-              Asian = "P005006", 
-              Hispanic = "P004003")
+racevars <- c(White = "P2_005N", 
+              Black = "P2_006N", 
+              Asian = "P2_008N", 
+              Hispanic = "P2_002N")
 
-harris <- get_decennial(geography = "tract", variables = racevars, 
-                  state = "TX", county = "Harris County", geometry = TRUE,
-                  summary_var = "P001001") 
+harris <- get_decennial(
+  geography = "tract",
+  variables = racevars,
+  state = "TX",
+  county = "Harris County",
+  geometry = TRUE,
+  summary_var = "P2_001N",
+  year = 2020
+) 
 
 head(harris)
 ```
 
 We notice that there are four entries for each Census tract, with each entry representing one of our requested variables. The `summary_value` column represents the value of the summary variable, which is total population in this instance.  When a summary variable is specified in `get_acs`, both `summary_est` and `summary_moe` columns will be returned.  
 
-With this information, we can set up an analysis pipeline in which we calculate a new percent-of-total column; recode the Census variable names into more intuitive labels; and visualize the result for each group in a faceted plot.  
+With this information, we can set up an analysis pipeline in which we calculate a new percent-of-total column and visualize the result for each group in a faceted plot.  
 
 ```{r}
 harris %>%
-  mutate(pct = 100 * (value / summary_value)) %>%
-  ggplot(aes(fill = pct)) +
+  mutate(percent = 100 * (value / summary_value)) %>%
+  ggplot(aes(fill = percent)) +
   facet_wrap(~variable) +
   geom_sf(color = NA) +
-  coord_sf(crs = 26915) + # Appropriate CRS for Houston, but may not be for your data
-  scale_fill_viridis_c()
+  theme_void() + 
+  scale_fill_viridis_c() + 
+  labs(fill = "% of population\n(2020 Census)")
 ```
 
-## Detailed shoreline mapping with tidycensus
+## Detailed shoreline mapping with tidycensus and tigris
 
-Geometries in tidycensus default to the Census Bureau's [cartographic boundary shapefiles](https://www.census.gov/geo/maps-data/data/tiger-cart-boundary.html).  Cartographic boundary shapefiles are preferred to the core [TIGER/Line shapefiles](https://www.census.gov/geo/maps-data/data/tiger-line.html) in tidycensus as their smaller size speeds up processing and because they are pre-clipped to the US coastline.
+Geometries in tidycensus default to the Census Bureau's [cartographic boundary shapefiles](https://www.census.gov/geographies/mapping-files/time-series/geo/cartographic-boundary.html).  Cartographic boundary shapefiles are preferred to the core [TIGER/Line shapefiles](https://www.census.gov/geo/maps-data/data/tiger-line.html) in tidycensus as their smaller size speeds up processing and because they are pre-clipped to the US coastline.
 
 However, there may be circumstances in which your mapping requires more detail.  A good example of this would be maps of New York City, in which even the cartographic boundary shapefiles include water area.  For example, take this example of median household income by Census tract in Manhattan (New York County), NY: 
 
@@ -84,6 +96,7 @@ ny <- get_acs(geography = "tract",
               variables = "B19013_001", 
               state = "NY", 
               county = "New York", 
+              year = 2020, 
               geometry = TRUE)
 
 ggplot(ny, aes(fill = estimate)) + 
@@ -93,41 +106,25 @@ ggplot(ny, aes(fill = estimate)) +
 
 ```
 
-As illustrated in the graphic, the boundaries of Manhattan include water boundaries - stretching into the Hudson and East Rivers.  In turn, a more accurate representation of Manhattan's land area might be desired.  To accomplish this, a tidycensus user can use the core TIGER/Line shapefiles instead, then erase water area from Manhattan's geometry.  
+As illustrated in the graphic, the boundaries of Manhattan include water boundaries - stretching into the Hudson and East Rivers.  In turn, a more accurate representation of Manhattan's land area might be desired.  To accomplish this, a tidycensus user can use the core TIGER/Line shapefiles instead with the argument `cb = FALSE`, then erase water area from Manhattan's geometry.  The `erase_water()` function in the __tigris__ R package will automatically remove proximate water areas from Census polygons, improving cartographic display.  The `area_threshold` argument determines the percentile ranking of the water areas by size in the data's proximity to retain; the default, 0.75, will keep the largest 25 percent of areas.  Data should be first transformed to a projected coordinate reference system to improve performance.  
 
-tidycensus allows users to get TIGER/Line instead of cartographic boundary shapefiles with the keyword argument `cb = FALSE`.  This argument will be familiar to users of the tigris package, as it is used by tigris to distinguish between cartographic boundary and TIGER/Line shapefiles in the package.  
-
-```{r, message = FALSE, warning = FALSE}
-library(sf)
-
-ny2 <- get_acs(geography = "tract", 
-              variables = "B19013_001", 
-              state = "NY", 
-              county = "New York", 
-              geometry = TRUE, 
-              cb = FALSE) 
-```
-
-Next, tools in the tigris and [sf](https://github.com/r-spatial/sf) package can be used to remove the water area from Manhattan's Census tracts.  sf allows users to "erase" one geometry from another, [akin to tools available in desktop GIS software](http://pro.arcgis.com/en/pro-app/tool-reference/analysis/erase.htm).  The `st_erase()` function defined below is not exported by the package, but is defined in the documentation for `st_difference()`.  
-
-The geometry used to "erase" water area from the tract polygons is obtained by the `area_water()` function in tigris, making sure to choose the option `class = "sf"`.  
 
 ```{r, message = FALSE, warning = FALSE}
 library(tigris)
+library(sf)
 
-st_erase <- function(x, y) {
-  st_difference(x, st_union(y))
-}
+ny_erase <- get_acs(
+  geography = "tract",
+  variables = "B19013_001",
+  state = "NY",
+  county = "New York",
+  year = 2020,
+  geometry = TRUE,
+  cb = FALSE
+) %>%
+  st_transform(26918) %>%
+  erase_water(area_threshold = 0.75)
 
-ny_water <- area_water("NY", "New York", class = "sf") 
-
-ny_erase <- st_erase(ny2, ny_water)
-
-```
-
-After performing this operation, we can visualize the result: 
-
-```{r, message = FALSE, warning = FALSE}
 ggplot(ny_erase, aes(fill = estimate)) + 
   geom_sf() + 
   theme_void() + 

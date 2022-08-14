@@ -2,7 +2,7 @@
 % Please edit documentation in R/census.R
 \name{get_decennial}
 \alias{get_decennial}
-\title{Obtain data and feature geometry for the decennial Census}
+\title{Obtain data and feature geometry for the decennial US Census}
 \usage{
 get_decennial(
   geography,
@@ -10,7 +10,8 @@ get_decennial(
   table = NULL,
   cache_table = FALSE,
   year = 2010,
-  sumfile = "sf1",
+  sumfile = c("sf1", "sf2", "sf3", "sf4", "sf2profile", "sf3profile", "sf4profile",
+    "pl", "plnat", "aian", "aianprofile", "as", "gu", "vi", "mp", "responserate", "pes"),
   state = NULL,
   county = NULL,
   geometry = FALSE,
@@ -39,10 +40,10 @@ Defaults to FALSE; if TRUE, only needs to be called once per
 dataset.  If variables dataset is already cached via the
 \code{load_variables} function, this can be bypassed.}
 
-\item{year}{The year for which you are requesting data.  1990, 2000, and 2010 are available.}
+\item{year}{The year for which you are requesting data. Defaults to 2010; 2000,
+2010, and 2020 are available.}
 
-\item{sumfile}{The Census summary file.  Defaults to sf1; the function will look in sf3 if it
-cannot find a variable in sf1.}
+\item{sumfile}{The Census summary file; defaults to \code{"sf1"} but will switch to \code{"pl"} if the year supplied is 2020.  Not all summary files are available for each decennial Census year.}
 
 \item{state}{The state for which you are requesting data. State
 names, postal codes, and FIPS codes are accepted.
@@ -55,7 +56,7 @@ to `state`.  Defaults to NULL.}
 \item{geometry}{if FALSE (the default), return a regular tibble of ACS data.
 if TRUE, uses the tigris package to return an sf tibble
 with simple feature geometry in the `geometry` column.  state, county, tract, and block group are
-supported for 1990 through 2010; block and ZCTA geometry are supported for 2000 and 2010.}
+supported for 2000 through 2020; block and ZCTA geometry are supported for 2000 and 2010.}
 
 \item{output}{One of "tidy" (the default) in which each row represents an
 enumeration unit-variable combination, or "wide" in which each
@@ -88,7 +89,7 @@ a browser and see what is returned by the API directly. Defaults to FALSE.}
 a tibble or sf tibble of decennial Census data
 }
 \description{
-Obtain data and feature geometry for the decennial Census
+Obtain data and feature geometry for the decennial US Census
 }
 \examples{
 \dontrun{

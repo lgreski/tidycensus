@@ -9,7 +9,7 @@ get_acs(
   variables = NULL,
   table = NULL,
   cache_table = FALSE,
-  year = 2019,
+  year = 2020,
   endyear = NULL,
   output = "tidy",
   state = NULL,
@@ -44,8 +44,9 @@ dataset.  If variables dataset is already cached via the
 \code{load_variables} function, this can be bypassed.}
 
 \item{year}{The year, or endyear, of the ACS sample. 5-year ACS data is
-available from 2009 through 2019. 1-year ACS data is available from 2005
-through 2019. Defaults to 2019.}
+available from 2009 through 2020; 1-year ACS data is available from 2005
+through 2019. Defaults to 2020; 1-year ACS users should supply a different year
+directly.}
 
 \item{endyear}{Deprecated and will be removed in a future release.}
 
@@ -112,7 +113,7 @@ library(viridis)
 census_api_key("YOUR KEY GOES HERE")
 
 tarr <- get_acs(geography = "tract", variables = "B19013_001",
-                state = "TX", county = "Tarrant", geometry = TRUE)
+                state = "TX", county = "Tarrant", geometry = TRUE, year = 2020)
 
 ggplot(tarr, aes(fill = estimate, color = estimate)) +
   geom_sf() +
@@ -121,12 +122,12 @@ ggplot(tarr, aes(fill = estimate, color = estimate)) +
   scale_color_viridis(option = "magma")
 
 
-vt <- get_acs(geography = "county", variables = "B19013_001", state = "VT")
+vt <- get_acs(geography = "county", variables = "B19013_001", state = "VT", year = 2019)
 
 vt \%>\%
 mutate(NAME = gsub(" County, Vermont", "", NAME)) \%>\%
  ggplot(aes(x = estimate, y = reorder(NAME, estimate))) +
-  geom_errorbarh(aes(xmin = estimate - moe, xmax = estimate + moe)) +
+  geom_errorbar(aes(xmin = estimate - moe, xmax = estimate + moe), width = 0.3, size = 0.5) +
   geom_point(color = "red", size = 3) +
   labs(title = "Household income by county in Vermont",
        subtitle = "2015-2019 American Community Survey",
